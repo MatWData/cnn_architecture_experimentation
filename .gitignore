@@ -1,3 +1,6 @@
 /data
 /uniform_data
-
+/augmented_data
+/processed_data
+/__pycache__
+/models
