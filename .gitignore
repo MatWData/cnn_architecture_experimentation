@@ -4,3 +4,5 @@
 /processed_data
 /__pycache__
 /models
+*.png
+.DS_Store
