@@ -5,6 +5,7 @@ from PIL import Image
 from collections import Counter
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import shutil
+
 # Set random seed for reproducibility
 np.random.seed(42)
 random.seed(42)
@@ -120,8 +121,6 @@ def load_processed_data(input_dir: str, output_dir: str = "./processed_data", au
         tuple: Normalized balanced X (features) and y (labels).
     """
     os.makedirs(output_dir, exist_ok=True)
-
-    # For debugging
     classes = ['hatchback', 'moped', 'pickup', 'seden', 'suv']
 
     # Temporary directories
@@ -135,14 +134,16 @@ def load_processed_data(input_dir: str, output_dir: str = "./processed_data", au
     if balance:
         os.makedirs(balanced_dir, exist_ok=True)
 
-    # Step 1: Resize images
+    # resize images
     for root, _, files in os.walk(input_dir):
         for file in files:
             input_path = os.path.join(root, file)
             relative_path = os.path.relpath(root, input_dir)
             output_class_dir = os.path.join(resized_dir, relative_path)
+
             os.makedirs(output_class_dir, exist_ok=True)
             output_path = os.path.join(output_class_dir, file)
+            
             resize_image(input_path, output_path)
     
     # debugging
@@ -150,7 +151,7 @@ def load_processed_data(input_dir: str, output_dir: str = "./processed_data", au
         print(f"resized file count ({class_name}) : {file_counts('processed_data/resized_data', class_name)}")
 
 
-    # Step 2: Load and normalize images
+    # add resized images to data
     data = []
     for class_name in os.listdir(resized_dir):
         class_dir = os.path.join(resized_dir, class_name)
@@ -163,7 +164,7 @@ def load_processed_data(input_dir: str, output_dir: str = "./processed_data", au
                 img_array = np.array(img).astype('float32') / 255.0
                 data.append((img_array, class_name.lower()))
 
-    # Step 3: Balance classes
+    # balance classes if True
     if balance:
         balance_classes(data, balanced_dir)
         for class_name in classes:
@@ -171,7 +172,7 @@ def load_processed_data(input_dir: str, output_dir: str = "./processed_data", au
     else:
         balanced_dir = resized_dir
 
-    # Step 4: Augment images
+    # use data augmentation to increase data diversity (by augment_chance)
     datagen = ImageDataGenerator(
         rotation_range=30,
         width_shift_range=0.2,
@@ -186,7 +187,7 @@ def load_processed_data(input_dir: str, output_dir: str = "./processed_data", au
     for class_name in classes:
         print(f"augmented file count ({class_name}) : {file_counts('processed_data/augmented_data', class_name)}")
 
-    # Step 5: Load augmented images into X and y
+    # load final data into X, y and return
     final_data = []
     for class_name in os.listdir(augmented_dir):
         class_dir = os.path.join(augmented_dir, class_name)
@@ -202,6 +203,7 @@ def load_processed_data(input_dir: str, output_dir: str = "./processed_data", au
     X = np.array([item[0] for item in final_data])
     y = np.array([item[1] for item in final_data])
 
+    # Bit of cleaning up, used for when we re-run the code later in the notebook
     try: 
         shutil.rmtree(output_dir)
         print(f"Deleted processed_data")
